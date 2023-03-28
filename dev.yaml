@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment 
 metadata:
-  name: stedi-lordcole-dev
+  name: stedi-cole-dev
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: stedi-lordcole-dev
+      app: stedi-cole-dev
   template:
     metadata:
       labels:
-        app: stedi-lordcole-dev
+        app: stedi-cole-dev
     spec:
       containers:
-        - name: stedi-lordcole-dev
+        - name: stedi-cole-dev
           image: pyrolyzer/stedi-api
           env:
             - name: REDIS_PASSWORD
@@ -44,3 +44,42 @@ spec:
               port: 4567
             initialDelaySeconds: 10
             periodSeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stedi-cole-nodeport
+spec:
+  selector:
+    app: stedi-cole-dev
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 4567
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: stedi-cole-certificate
+spec:
+  domains:
+    - cole.cit262.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: stedi-cole-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: stedi-cole-public
+    networking.gke.io/managed-certificates: stedi-cole-certificate
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: stedi-cole-nodeport
+            port:
+              number: 80
